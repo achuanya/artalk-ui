@@ -22,6 +22,8 @@ type tplParams struct {
 	ParentComment entity.CookedCommentForEmail `json:"parent_comment"`
 
 	Nick         string `json:"nick"`
+	Email        string `json:"email"`
+	Link         string `json:"link"`
 	Content      string `json:"content"`
 	ReplyNick    string `json:"reply_nick"`
 	ReplyContent string `json:"reply_content"`
@@ -61,9 +63,11 @@ func getCommonParams(dao *dao.Dao, notify *entity.Notify, atd notifyExtraData) t
 		ParentComment: atd.to,
 
 		Nick:         atd.toUser.Name,
+		Email:        atd.toUser.Email,
+		Link:         atd.toUser.Link,
 		Content:      atd.to.Content,
 		ReplyNick:    atd.from.Nick,
-		ReplyContent: atd.from.Content,
+		ReplyContent: addWidthToImgTags(atd.from.Content),
 		PageTitle:    atd.from.Page.Title,
 		PageURL:      atd.from.Page.URL,
 		SiteName:     atd.from.SiteName,
@@ -108,6 +112,19 @@ func handleEmoticonsImgTagsForNotify(str string) string {
 			return "[表情]"
 		}
 		return "[" + ms[1] + "]"
+	})
+}
+
+func addWidthToImgTags(str string) string {
+	// 匹配所有 <img> 标签
+	r := regexp.MustCompile(`<img\s+([^>]*)>`)
+	return r.ReplaceAllStringFunc(str, func(m string) string {
+		// 如果已经有 width 属性，则不添加
+		if regexp.MustCompile(`\bwidth\s*=`).MatchString(m) {
+			return m
+		}
+		// 在 <img 后面添加 width="50"
+		return regexp.MustCompile(`<img\s+`).ReplaceAllString(m, `<img width="50" `)
 	})
 }
 
